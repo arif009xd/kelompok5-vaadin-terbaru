@@ -54,6 +54,7 @@ public class ProductView extends Div implements BeforeEnterObserver {
 
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
+    private final Button delete = new Button("Delete");
 
     private final BeanValidationBinder<Product> binder;
 
@@ -117,6 +118,28 @@ public class ProductView extends Div implements BeforeEnterObserver {
         cancel.addClickListener(e -> {
             clearForm();
             refreshGrid();
+        });
+
+        save.addClickListener(e -> {
+            try {
+                if (this.product == null) {
+                    Notification.show("no product selection");
+                }else {
+                    binder.writeBean(this.product);
+                    productService.delete(this.product.getId());
+                    clearForm();
+                    refreshGrid();
+                    Notification.show("Data deleted");
+                    UI.getCurrent().navigate(ProductView.class);
+                }
+            } catch (ObjectOptimisticLockingFailureException exception) {
+                Notification n = Notification.show(
+                        "Error updating the data. Somebody else has updated the record while you were making changes.");
+                n.setPosition(Position.MIDDLE);
+                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            } catch (ValidationException validationException) {
+                Notification.show("Failed to update the data. Check again that all values are valid");
+            }
         });
 
         save.addClickListener(e -> {
@@ -193,7 +216,8 @@ public class ProductView extends Div implements BeforeEnterObserver {
         buttonLayout.setClassName("button-layout");
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        buttonLayout.add(save, cancel);
+        delete.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        buttonLayout.add(save, delete, cancel);
         editorLayoutDiv.add(buttonLayout);
     }
 
