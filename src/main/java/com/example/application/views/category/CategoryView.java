@@ -69,6 +69,8 @@ public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterOb
     @Id
     private Button save;
 
+    private Button delete;
+
     private BeanValidationBinder<Category> binder;
 
     private Category category;
@@ -138,6 +140,23 @@ public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterOb
                         "Error updating the data. Somebody else has updated the record while you were making changes.");
                 n.setPosition(Position.MIDDLE);
                 n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            } catch (ValidationException validationException) {
+                Notification.show("Failed to update the data. Check again that all values are valid");
+            }
+        });
+
+        delete.addClickListener(e -> {
+            try{
+                if (this.category == null) {
+                    this.category = new Category();
+                }
+                binder.writeBean(this.category);
+
+                categoryService.delete(this.category.getId());
+                clearForm();
+                refreshGrid();
+                Notification.show("Berhasil Menghapus Category");
+                UI.getCurrent().navigate(CategoryView.class);
             } catch (ValidationException validationException) {
                 Notification.show("Failed to update the data. Check again that all values are valid");
             }
