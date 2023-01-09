@@ -8,25 +8,26 @@ import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.JsModule;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.littemplate.LitTemplate;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.template.Id;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.data.renderer.LitRenderer;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteAlias;
+import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.spring.data.VaadinSpringDataHelpers;
 import java.io.ByteArrayInputStream;
@@ -41,7 +42,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 @RouteAlias(value = "", layout = MainLayout.class)
 @Tag("category-view")
 @JsModule("./views/category/category-view.ts")
-public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterObserver {
+public class CategoryView extends Div implements BeforeEnterObserver {
 
     private final String CATEGORY_ID = "categoryID";
     private final String CATEGORY_EDIT_ROUTE_TEMPLATE = "category/%s/edit";
@@ -51,25 +52,22 @@ public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterOb
     // The design can be easily edited by using Vaadin Designer
     // (vaadin.com/designer)
 
-    @Id
-    private Grid<Category> grid;
+    private final Grid<Category> grid = new Grid<>(Category.class, false);
 
-    @Id
+
     private TextField nameCategory;
-    @Id
+
     private TextField slugProduct;
-    @Id
+
     private TextField totalProduct;
-    @Id
     private Upload thumbnailSlug;
-    @Id
     private Image thumbnailSlugPreview;
 
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
     private final Button delete = new Button("Delete");
 
-    private BeanValidationBinder<Category> binder;
+    private final BeanValidationBinder<Category> binder;
 
     private Category category;
 
@@ -78,9 +76,17 @@ public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterOb
     public CategoryView(CategoryService categoryService) {
         this.categoryService = categoryService;
         addClassNames("category-view");
-        grid.addColumn(Category::getNameCategory).setHeader("Name Category").setAutoWidth(true);
-        grid.addColumn(Category::getSlugProduct).setHeader("Slug Product").setAutoWidth(true);
-        grid.addColumn(Category::getTotalProduct).setHeader("Total Product").setAutoWidth(true);
+
+        SplitLayout splitLayout = new SplitLayout();
+
+        createGridLayout(splitLayout);
+        createEditorLayout(splitLayout);
+
+        add(splitLayout);
+
+        grid.addColumn("nameCategory").setAutoWidth(true);
+        grid.addColumn("slugProduct").setAutoWidth(true);
+        grid.addColumn("totalProduct").setAutoWidth(true);
         LitRenderer<Category> thumbnailSlugRenderer = LitRenderer.<Category>of(
                 "<span style='border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; width: 64px; height: 64px'><img style='max-width: 100%' src=${item.thumbnailSlug} /></span>")
                 .withProperty("thumbnailSlug", item -> {
@@ -167,6 +173,7 @@ public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterOb
 
     }
 
+
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         Optional<Long> categoryId = event.getRouteParameters().get(CATEGORY_ID).map(Long::parseLong);
@@ -183,6 +190,49 @@ public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterOb
                 event.forwardTo(CategoryView.class);
             }
         }
+    }
+
+    private void createEditorLayout(SplitLayout splitLayout) {
+        Div editorLayoutDiv = new Div();
+        editorLayoutDiv.setClassName("editor-layout");
+
+        Div editorDiv = new Div();
+        editorDiv.setClassName("editor");
+        editorLayoutDiv.add(editorDiv);
+
+        FormLayout formLayout = new FormLayout();
+        nameCategory = new TextField("Name Category");
+        slugProduct = new TextField("Slug");
+        totalProduct = new TextField("Total Product");
+        Label thumbnailSlugLabel = new Label("Thumbnail Product");
+        thumbnailSlugPreview = new Image();
+        thumbnailSlugPreview.setWidth("100%");
+        thumbnailSlug = new Upload();
+        thumbnailSlug.getStyle().set("box-sizing", "border-box");
+        thumbnailSlug.getElement().appendChild(thumbnailSlugPreview.getElement());
+        formLayout.add( nameCategory, slugProduct, totalProduct, thumbnailSlugLabel,
+                thumbnailSlug);
+
+        editorDiv.add(formLayout);
+        createButtonLayout(editorLayoutDiv);
+
+        splitLayout.addToSecondary(editorLayoutDiv);
+    }
+
+    private void createButtonLayout(Div editorLayoutDiv) {
+        HorizontalLayout buttonLayout = new HorizontalLayout();
+        buttonLayout.setClassName("button-layout");
+        cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        delete.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        buttonLayout.add(save, delete, cancel);
+        editorLayoutDiv.add(buttonLayout);
+    }
+    private void createGridLayout(SplitLayout splitLayout) {
+        Div wrapper = new Div();
+        wrapper.setClassName("grid-wrapper");
+        splitLayout.addToPrimary(wrapper);
+        wrapper.add(grid);
     }
 
     private void attachImageUpload(Upload upload, Image preview) {
