@@ -3,6 +3,7 @@ package com.example.application.views.category;
 import com.example.application.data.entity.Category;
 import com.example.application.data.service.CategoryService;
 import com.example.application.views.MainLayout;
+import com.example.application.views.product.ProductView;
 import com.vaadin.flow.component.HasStyle;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
@@ -64,12 +65,9 @@ public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterOb
     @Id
     private Image thumbnailSlugPreview;
 
-    @Id
-    private Button cancel;
-    @Id
-    private Button save;
-
-    private Button delete;
+    private final Button cancel = new Button("Cancel");
+    private final Button save = new Button("Save");
+    private final Button delete = new Button("Delete");
 
     private BeanValidationBinder<Category> binder;
 
@@ -146,17 +144,22 @@ public class CategoryView extends LitTemplate implements HasStyle, BeforeEnterOb
         });
 
         delete.addClickListener(e -> {
-            try{
+            try {
                 if (this.category == null) {
-                    this.category = new Category();
+                    Notification.show("no category selection");
+                }else {
+                    binder.writeBean(this.category);
+                    categoryService.delete(this.category.getId());
+                    clearForm();
+                    refreshGrid();
+                    Notification.show("Data deleted");
+                    UI.getCurrent().navigate(ProductView.class);
                 }
-                binder.writeBean(this.category);
-
-                categoryService.delete(this.category.getId());
-                clearForm();
-                refreshGrid();
-                Notification.show("Berhasil Menghapus Category");
-                UI.getCurrent().navigate(CategoryView.class);
+            } catch (ObjectOptimisticLockingFailureException exception) {
+                Notification n = Notification.show(
+                        "Error updating the data. Somebody else has updated the record while you were making changes.");
+                n.setPosition(Position.MIDDLE);
+                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
             } catch (ValidationException validationException) {
                 Notification.show("Failed to update the data. Check again that all values are valid");
             }
