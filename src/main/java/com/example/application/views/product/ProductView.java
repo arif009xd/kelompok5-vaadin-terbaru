@@ -120,7 +120,7 @@ public class ProductView extends Div implements BeforeEnterObserver {
             refreshGrid();
         });
 
-        save.addClickListener(e -> {
+        delete.addClickListener(e -> {
             try {
                 if (this.product == null) {
                     Notification.show("no product selection");
